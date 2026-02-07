@@ -110,6 +110,7 @@ async def show_student_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     keyboard = [
         [InlineKeyboardButton("📅 Моё расписание", callback_data="student_schedule")],
         [InlineKeyboardButton("📚 Доступные лекции", callback_data="student_lectures")],
+        [InlineKeyboardButton("📓 Домашнее задание", callback_data="student_homework")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -229,7 +230,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 keyboard = [
                     [InlineKeyboardButton("📅 Моё расписание", callback_data="student_schedule")],
                     [InlineKeyboardButton("📚 Доступные лекции", callback_data="student_lectures")],
-                    [InlineKeyboardButton("🔙 Вернуться в админ-панель", callback_data="exit_student_view")],
+                    [InlineKeyboardButton("� Домашнее задание", callback_data="student_homework")],
+                    [InlineKeyboardButton("�🔙 Вернуться в админ-панель", callback_data="exit_student_view")],
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text(f"🔍 Просмотр как ученик: <b>{student['username']}</b>\n\n🔧 Меню ученика:", reply_markup=reply_markup, parse_mode='HTML')
@@ -252,6 +254,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text(f"📅 Ваше расписание:\n{schedule}", reply_markup=reply_markup)
+                return
+            
+            elif query.data == "student_homework":
+                student_id = get_student_id(user_id, context)
+                student_data = db.get_student(student_id)
+                homework = student_data.get('homework', 'Домашнее задание не установлено') if student_data else 'Ошибка'
+                keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(f"📓 Домашнее задание:\n{homework}", reply_markup=reply_markup)
                 return
             
             elif query.data == "student_lectures":
@@ -610,10 +621,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 else:
                     lectures_list = "  Нет лекций"
                 
+                homework = student.get('homework', '')
+                homework_text = f"\n📓 <b>Домашнее задание:</b>\n{homework}" if homework else ""
+                
                 info_text = (
                     f"👤 <b>{student['username']}</b>\n"
                     f"📅 Расписание: {student['schedule']}\n"
                     f"📚 Доступные лекции:\n{lectures_list}"
+                    f"{homework_text}"
                 )
                 keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="admin_students_menu")]]
                 reply_markup = InlineKeyboardMarkup(keyboard)
@@ -776,6 +791,25 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text("❌ Ученик не найден", reply_markup=reply_markup)
         
+        elif query.data.startswith("edit_student_add_homework_"):
+            student_id = int(query.data.replace("edit_student_add_homework_", ""))
+            student = db.get_student(student_id)
+            if student:
+                keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data=f"edit_student_{student_id}")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(
+                    f"📝 Добавление ДЗ для ученика {student['username']}\n\n"
+                    f"Текущее ДЗ: {student.get('homework', 'Не установлено')}\n\n"
+                    "Отправьте текст с ДЗ:",
+                    reply_markup=reply_markup
+                )
+                context.user_data['action'] = 'edit_student_homework'
+                context.user_data['edit_student_id'] = student_id
+            else:
+                keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="admin_students_menu")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text("❌ Ученик не найден", reply_markup=reply_markup)
+        
         elif query.data.startswith("edit_student_"):
             student_id = int(query.data.replace("edit_student_", ""))
             student = db.get_student(student_id)
@@ -784,7 +818,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     [InlineKeyboardButton("➕ Добавить лекцию", callback_data=f"edit_student_add_lec_{student_id}")],
                     [InlineKeyboardButton("🗑️ Удалить лекцию", callback_data=f"edit_student_remove_lec_{student_id}")],
                     [InlineKeyboardButton("📝 Редактировать расписание", callback_data=f"edit_student_schedule_{student_id}")],
-                    [InlineKeyboardButton("🔙 Назад", callback_data="admin_students_menu")],
+                    [InlineKeyboardButton("� Добавить ДЗ", callback_data=f"edit_student_add_homework_{student_id}")],
+                    [InlineKeyboardButton("�🔙 Назад", callback_data="admin_students_menu")],
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text(f"✏️ Редактирование {student['username']}:", reply_markup=reply_markup)
@@ -942,6 +977,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(f"📅 Ваше расписание:\n{schedule}", reply_markup=reply_markup)
+        
+        elif query.data == "student_homework":
+            student_id = get_student_id(user_id, context)
+            student_data = db.get_student(student_id)
+            homework = student_data.get('homework', 'Домашнее задание не установлено') if student_data else 'Ошибка'
+            keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(f"📓 Домашнее задание:\n{homework}", reply_markup=reply_markup)
         
         elif query.data == "student_lectures":
             await show_student_lectures(update, context)
@@ -1433,12 +1476,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         [InlineKeyboardButton("➕ Добавить лекцию", callback_data=f"edit_student_add_lec_{student_id}")],
                         [InlineKeyboardButton("🗑️ Удалить лекцию", callback_data=f"edit_student_remove_lec_{student_id}")],
                         [InlineKeyboardButton("📝 Редактировать расписание", callback_data=f"edit_student_schedule_{student_id}")],
-                        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_admin")],
+                        [InlineKeyboardButton("� Добавить ДЗ", callback_data=f"edit_student_add_homework_{student_id}")],
+                        [InlineKeyboardButton("�🔙 Назад", callback_data="back_to_admin")],
                     ]
                     reply_markup = InlineKeyboardMarkup(keyboard)
                     await update.message.reply_text(f"✏️ Редактирование {student['username']}:", reply_markup=reply_markup)
                 else:
                     await update.message.reply_text("❌ Ошибка при обновлении расписания")
+            else:
+                await update.message.reply_text("❌ Ученик не найден")
+            
+            context.user_data['action'] = None
+            context.user_data['edit_student_id'] = None
+        
+        elif action == 'edit_student_homework':
+            # Edit student homework
+            student_id = context.user_data.get('edit_student_id')
+            student = db.get_student(student_id)
+            
+            if student:
+                new_homework = text
+                if db.update_student(student_id, homework=new_homework):
+                    await update.message.reply_text(
+                        f"✅ ДЗ ученика {student['username']} обновлено!\n\n"
+                        f"📓 Новое ДЗ: {new_homework}"
+                    )
+                    # Return to edit student menu
+                    keyboard = [
+                        [InlineKeyboardButton("➕ Добавить лекцию", callback_data=f"edit_student_add_lec_{student_id}")],
+                        [InlineKeyboardButton("🗑️ Удалить лекцию", callback_data=f"edit_student_remove_lec_{student_id}")],
+                        [InlineKeyboardButton("📝 Редактировать расписание", callback_data=f"edit_student_schedule_{student_id}")],
+                        [InlineKeyboardButton("📓 Добавить ДЗ", callback_data=f"edit_student_add_homework_{student_id}")],
+                        [InlineKeyboardButton("🔙 Назад", callback_data="back_to_admin")],
+                    ]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    await update.message.reply_text(f"✏️ Редактирование {student['username']}:", reply_markup=reply_markup)
+                else:
+                    await update.message.reply_text("❌ Ошибка при обновлении ДЗ")
             else:
                 await update.message.reply_text("❌ Ученик не найден")
             

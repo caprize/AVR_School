@@ -40,6 +40,7 @@ class DatabaseManager:
                 'username': username,
                 'schedule': schedule,
                 'lectures': [],
+                'homework': '',
                 'created_at': datetime.now().isoformat()
             }
             self.r.set(f"student:{user_id}", json.dumps(student_data))
