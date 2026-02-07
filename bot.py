@@ -230,8 +230,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 keyboard = [
                     [InlineKeyboardButton("📅 Моё расписание", callback_data="student_schedule")],
                     [InlineKeyboardButton("📚 Доступные лекции", callback_data="student_lectures")],
-                    [InlineKeyboardButton("� Домашнее задание", callback_data="student_homework")],
-                    [InlineKeyboardButton("�🔙 Вернуться в админ-панель", callback_data="exit_student_view")],
+                    [InlineKeyboardButton("📓 Домашнее задание", callback_data="student_homework")],
+                    [InlineKeyboardButton("🔙 Вернуться в админ-панель", callback_data="exit_student_view")],
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text(f"🔍 Просмотр как ученик: <b>{student['username']}</b>\n\n🔧 Меню ученика:", reply_markup=reply_markup, parse_mode='HTML')
@@ -818,8 +818,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     [InlineKeyboardButton("➕ Добавить лекцию", callback_data=f"edit_student_add_lec_{student_id}")],
                     [InlineKeyboardButton("🗑️ Удалить лекцию", callback_data=f"edit_student_remove_lec_{student_id}")],
                     [InlineKeyboardButton("📝 Редактировать расписание", callback_data=f"edit_student_schedule_{student_id}")],
-                    [InlineKeyboardButton("� Добавить ДЗ", callback_data=f"edit_student_add_homework_{student_id}")],
-                    [InlineKeyboardButton("�🔙 Назад", callback_data="admin_students_menu")],
+                    [InlineKeyboardButton("➕ Добавить ДЗ", callback_data=f"edit_student_add_homework_{student_id}")],
+                    [InlineKeyboardButton("🔙 Назад", callback_data="admin_students_menu")],
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 await query.edit_message_text(f"✏️ Редактирование {student['username']}:", reply_markup=reply_markup)
